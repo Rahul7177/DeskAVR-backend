@@ -44,7 +44,7 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userID: user.userID, email: user.email },
+      { userID: user.userID, email: user.email,},
       JWT_SECRET,
       { expiresIn: "1h" }
     );
@@ -54,6 +54,7 @@ router.post("/login", async (req, res) => {
       token,
       name: user.name,
       email: user.email,
+      userID: user.userID,
     });
   } catch (err) {
     console.error("Error during login:", err); // Debugging log
@@ -120,6 +121,75 @@ router.put("/update-password", async (req, res) => {
     res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/pastinterviews/:userID", async (req, res) => {
+  try {
+    const { userID } = req.params; // Use params instead of query
+    console.log(`Received userID from request: ${userID}`);
+
+    if (!userID) {
+      return res.status(400).json({ message: "UserId is required" });
+    }
+
+    // Log all users for debugging (useful for testing)
+    const allUsers = await User.find();
+    console.log("All users in database:", allUsers);
+
+    const user = await User.findOne({ userID: userID });
+    if (!user) {
+      console.log(`User not found for userID: ${userID}`);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    console.log("User found:", user);
+
+    const interviews_given = Array.isArray(user.interviews_given) ? user.interviews_given : [];
+    const reports = Array.isArray(user.reports) ? user.reports : [];
+
+    const pastInterviews = interviews_given.map((company, index) => {
+      const report = reports[index] || {};
+      return {
+        name: company,
+        createdAt: report.createdAt ? new Date(report.createdAt).toLocaleDateString() : "Date not available",
+      };
+    });
+
+    console.log("Past interviews:", pastInterviews);
+
+    res.json(pastInterviews);
+  } catch (error) {
+    console.error("Error fetching past interviews:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/:userID/reports/:index", async (req, res) => {
+  const { userID, index } = req.params;
+
+  try {
+    // Find the user by userID
+    const user = await User.findOne({ userID });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if the index is valid for both interviews_given and reports
+    if (index < 0 || index >= user.reports.length || index >= user.interviews_given.length) {
+      return res.status(404).json({ error: "Report or interview not found" });
+    }
+
+    // Retrieve the specific report and interview
+    const report = user.reports[index];
+    const interview = user.interviews_given[index];
+    
+    // Include interview data if needed in response
+    res.status(200).json({ report, interview, user });
+  } catch (error) {
+    console.error("Error fetching report:", error);
+    res.status(500).json({ error: "Failed to fetch report" });
   }
 });
 
