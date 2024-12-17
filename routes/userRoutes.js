@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { Admin } = require("../models/Admin");
 
 const router = express.Router();
 
@@ -26,35 +27,36 @@ router.post("/signup", async (req, res) => {
 
 // Login Route
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, isAdmin } = req.body; // Added isAdmin flag
 
   try {
-    const user = await User.findOne({
+    const Collection = isAdmin ? Admin : User; // Dynamically select collection
+    const user = await Collection.findOne({
       email: { $regex: new RegExp("^" + email + "$", "i") },
     });
 
-    console.log("User Document Retrieved:", user); // Debugging log
+    console.log(`${isAdmin ? "Admin" : "User"} Document Retrieved:`, user); // Debugging log
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: `${isAdmin ? "Admin" : "User"} not found` });
     }
 
     if (user.password !== password) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { userID: user.userID, email: user.email,},
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+    const tokenPayload = isAdmin
+      ? { adminID: user._id, email: user.email }
+      : { userID: user.userID, email: user.email };
+
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "1h" });
 
     res.status(200).json({
       message: "Login successful",
       token,
       name: user.name,
       email: user.email,
-      userID: user.userID,
+      ...(isAdmin ? { adminID: user._id } : { userID: user.userID }),
     });
   } catch (err) {
     console.error("Error during login:", err); // Debugging log
@@ -87,14 +89,32 @@ router.post("/addReport/:userID", async (req, res) => {
 
 // Get user details
 router.get("/:userID", async (req, res) => {
-  const { userID } = req.params;
+  const { userID } = req.params; // Extract the userID from the route parameter
+
   try {
+    // Find the user by userID in the database
     const user = await User.findOne({ userID });
+
+    // Check if user exists
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.status(200).json(user);
+
+    // Assuming the user document has 'subscription' and 'transactions' fields
+    // You can customize this depending on what you want to return
+    const userData = {
+      id: user.userID,
+      name: user.name,
+      email: user.email,
+      subscription: user.subscription, // Subscription status
+      transactions: user.transactions, // Transaction history
+    };
+
+    // Send back the user data as a response
+    res.status(200).json(userData);
   } catch (err) {
+    // Handle any error that occurs while fetching the user
+    console.error("Error fetching user:", err);
     res.status(500).json({ error: "Error fetching user", details: err });
   }
 });
@@ -190,6 +210,32 @@ router.get("/:userID/reports/:index", async (req, res) => {
   } catch (error) {
     console.error("Error fetching report:", error);
     res.status(500).json({ error: "Failed to fetch report" });
+  }
+});
+
+router.post("/addTransaction/:userID", async (req, res) => {
+  const { userID } = req.params;
+  const { transactionID } = req.body;
+
+  console.log("Received UserID:", userID);
+  console.log("Received TransactionID:", transactionID);
+
+  if (!userID || !transactionID) {
+    return res.status(400).json({ error: "UserID and TransactionID are required" });
+  }
+
+  try {
+    const user = await User.findOne({ userID });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    user.transactions.push(transactionID);
+    await user.save();
+    res.status(200).json({ message: "Transaction ID added successfully" });
+  } catch (error) {
+    console.error("Error adding transaction:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
