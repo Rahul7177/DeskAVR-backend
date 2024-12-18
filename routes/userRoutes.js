@@ -19,6 +19,53 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/:userID', async (req, res) => {
+  try {
+      const userID = req.params.userID;
+      const user = await User.findOne({ userID: userID }); // Explicitly select the key
+
+      if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json(user);
+  } catch (error) {
+      console.error('Error fetching user:', error);
+      if (error.name === 'CastError' && error.kind === 'ObjectId') {
+          return res.status(400).json({ error: 'Invalid user ID format' });
+      }
+      res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+router.put('/clearKey/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const providedKey = req.body.key;
+
+    const user = await User.findOne({ userID: userId }).select('+key'); // Explicitly include 'key' field
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.key !== providedKey) {
+      return res.status(400).json({ error: 'Invalid key' });
+    }
+
+    // Clear the key in the database
+    user.key = '';
+    await user.save();
+
+    res.json({ message: 'Key cleared successfully' });
+  } catch (error) {
+    console.error('Error clearing key:', error);
+    res.status(500).json({ error: 'Failed to clear key' });
+  }
+});
+
+
+
 // Signup Route
 router.post("/signup", async (req, res) => {
   const { name, email, phone, password } = req.body;

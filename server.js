@@ -68,9 +68,15 @@ app.get('/api/admin/dashboard', requireAuth, (req, res) => {
 app.put('/api/users/:userId', async (req, res) => {
   try {
       const userId = req.params.userId;
-      const { subscription } = req.body;
+      const { subscription, key } = req.body; // Include 'key' in the destructuring
 
-      const updatedUser = await User.findByIdAndUpdate(userId, { subscription }, { new: true });
+      const updateFields = { subscription }; // Start with subscription
+
+      if (key !== undefined) { // Only add 'key' if it's provided in the request
+          updateFields.key = key;
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(userId, updateFields, { new: true });
 
       if (!updatedUser) {
           return res.status(404).json({ error: 'User not found' });
@@ -78,8 +84,8 @@ app.put('/api/users/:userId', async (req, res) => {
 
       res.json(updatedUser);
   } catch (error) {
-      console.error('Error updating user subscription:', error);
-      res.status(500).json({ error: 'Failed to update subscription' });
+      console.error('Error updating user:', error); // More generic error message
+      res.status(500).json({ error: 'Failed to update user' }); // More generic error message
   }
 });
 

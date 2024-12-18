@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true, unique: true },
+  key:{type: String},
   password: { type: String, required: true },
   subscription: { type: Boolean, default: false },
   transactions: { type: [String], default: [] },
