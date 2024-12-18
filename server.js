@@ -1,54 +1,88 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const bodyParser = require("body-parser");
+const User = require("./models/User");
 const userRoutes = require("./routes/userRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const requireAuth = require('./authMiddleware');
 
 const app = express();
+app.use(express.json()); // Replaces body-parser
 
 // Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use("/api/users", userRoutes);
+app.use(
+  cors({
+    origin: "http://localhost:3000", // Your frontend's URL
+    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
+    credentials: true, // Allow cookies/auth headers if needed
+  })
+);
 
-// Connect to MongoDB
-const mongoURI = "mongodb+srv://deskavrspectov:deskavr123@cluster0.dfw2o.mongodb.net/deskavr"; // Replace with your actual URI
-mongoose.connect(mongoURI, {
+// Routes
+
+// MongoDB Connection
+const mongoURI = "mongodb+srv://deskavrspectov:deskavr123@cluster0.dfw2o.mongodb.net/deskavr";
+mongoose
+.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-  .then(async () => {
-    console.log("Connected to MongoDB");
-
-    // Get the current database name
-    const db = mongoose.connection.db;
-    const databaseName = db.databaseName;
-    console.log(`Connected to database: ${databaseName}`);
-
-    // List all collections in the database
-    const collections = await db.collections();
-    console.log("Collections in the database:");
-    collections.forEach((collection) => {
-      console.log(`- ${collection.collectionName}`);
-    });
-
-    // Optionally log some sample records from each collection
-    for (let collection of collections) {
-      const records = await collection.find().limit(3).toArray(); // Limiting to 3 records for brevity
-      console.log(`Sample records from ${collection.collectionName}:`);
-      console.log(records);
-    }
-  })
-  .catch((err) => {
-    console.error("Error connecting to MongoDB:", err);
+.then(async () => {
+  console.log("Connected to MongoDB");
+  
+  // Debugging database connection
+  const db = mongoose.connection.db;
+  const databaseName = db.databaseName;
+  console.log(`Connected to database: ${databaseName}`);
+  
+  const collections = await db.collections();
+  console.log("Collections in the database:");
+  collections.forEach((collection) => {
+    console.log(`- ${collection.collectionName}`);
   });
+})
+.catch((err) => {
+  console.error("Error connecting to MongoDB:", err);
+});
 
-// Define your routes (assuming you've set up routes in userRoute.js)
+app.use("/api/users", userRoutes);
+app.use("/api/admin", adminRoutes);
+
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(500).json({ error: "Internal Server Error", details: err.message });
+  console.log("Request:", req.method, req.url, req.body);
+  next();
+});
+
+
+// Default Route
 app.get("/", (req, res) => {
   res.send("Hello, MongoDB connected!");
 });
+app.get('/api/admin/dashboard', requireAuth, (req, res) => {
+  // This code will only execute if the user is authenticated and is an admin
+  res.json({ message: 'Admin dashboard accessed successfully', user: req.user }); // Send user data from middleware
+});
 
-// Port where the server runs
+app.put('/api/users/:userId', async (req, res) => {
+  try {
+      const userId = req.params.userId;
+      const { subscription } = req.body;
+
+      const updatedUser = await User.findByIdAndUpdate(userId, { subscription }, { new: true });
+
+      if (!updatedUser) {
+          return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json(updatedUser);
+  } catch (error) {
+      console.error('Error updating user subscription:', error);
+      res.status(500).json({ error: 'Failed to update subscription' });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

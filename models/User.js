@@ -14,18 +14,18 @@ const reportSchema = new mongoose.Schema({
 });
 
 const userSchema = new mongoose.Schema({
-  userID: { type: String, required: true, unique: true },
+  userID: { type: mongoose.Types.ObjectId, required: true, unique: true, default: mongoose.Types.ObjectId },
+  name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
+  phone: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  reports: [reportSchema],
-  interviews_given: [String],
+  subscription: { type: Boolean, default: false },
+  transactions: { type: [String], default: [] },
   interview_count: { type: Number, default: 0 },
+  interviews_given: { type: [String], default: [] },
+  reports: { type: [reportSchema], default: [] },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-  name:{type: String, required: true},
-  phone:{type: String, required: true, unique: true},
-  subscription:{type: Boolean, default: false},
-  transactions:[String],
 });
 
 module.exports = mongoose.model("user", userSchema);
