@@ -90,7 +90,7 @@ app.put('/api/users/:userId', async (req, res) => {
 });
 const reportRoutes = require("./routes/report");
 app.use("/api/sendreport", reportRoutes);
-app.use("/api/getreport", reportRoutes);
+app.use("/api/getreport", reportRoutes); //need to work on this
 app.use("/api/user", reportRoutes); 
 
 const PORT = process.env.PORT || 8081;
