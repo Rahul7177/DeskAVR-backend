@@ -88,8 +88,12 @@ app.put('/api/users/:userId', async (req, res) => {
       res.status(500).json({ error: 'Failed to update user' }); // More generic error message
   }
 });
+const reportRoutes = require("./routes/report");
+app.use("/api/sendreport", reportRoutes);
+app.use("/api/getreport", reportRoutes);
+app.use("/api/user", reportRoutes); 
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
