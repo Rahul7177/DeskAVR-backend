@@ -217,7 +217,8 @@ router.get("/:userID", async (req, res) => {
       name: user.name,
       email: user.email,
       subscription: user.subscription, // Subscription status
-      transactions: user.transactions, // Transaction history
+      transactions: user.transactions,
+      key:user.key, // Transaction history
     };
 
     // Send back the user data as a response
