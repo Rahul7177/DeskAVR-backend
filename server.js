@@ -14,7 +14,7 @@ require('dotenv').config();
 // Middleware
 app.use(
   cors({
-    origin: "https://deskavr.spectov.in/", // Your frontend's URL
+    origin: "https://deskavr.spectov.in", // Your frontend's URL
     methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
     credentials: true, // Allow cookies/auth headers if needed
   })
