@@ -21,7 +21,7 @@ app.use(
 // Routes
 
 // MongoDB Connection
-const mongoURI = "mongodb+srv://deskavrspectov:deskavr123@cluster0.dfw2o.mongodb.net/deskavr";
+const mongoURI = process.env.MONGO_URI;
 mongoose
 .connect(mongoURI, {
   useNewUrlParser: true,
