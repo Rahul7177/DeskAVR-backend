@@ -8,11 +8,13 @@ const requireAuth = require('./authMiddleware');
 
 const app = express();
 app.use(express.json()); // Replaces body-parser
+require('dotenv').config();
+
 
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:3000", // Your frontend's URL
+    origin: "https://deskavr.spectov.in/", // Your frontend's URL
     methods: ["GET", "POST", "PUT", "DELETE"], // Allowed methods
     credentials: true, // Allow cookies/auth headers if needed
   })
